@@ -3,10 +3,10 @@ data "http" "workstation-external-ip" {
 }
 
 locals {
-  workstation-external-cidr = "${chomp(data.http.workstation-external-ip.body)}/32"
+  workstation-external-cidr = "${chomp(data.http.workstation-external-ip.response_body)}/32"
 }
 
-data "aws_subnet_ids" "subnet_id" {
+data "aws_subnet" "subnet" {
   vpc_id = var.vpc_id
 
   tags = {
@@ -14,18 +14,14 @@ data "aws_subnet_ids" "subnet_id" {
   }
 }
 
-
 output "ids" {
-    value = data.aws_subnet_ids.subnet_id.ids
+  value = data.aws_subnet.subnet.*.id
 }
-
-
 
 resource "aws_security_group" "EKS_SG" {
   name        = "${var.cluster_name}-sg"
   description = "${var.cluster_name}-sg"
   vpc_id      = var.vpc_id
-  
 
   ingress {
     description      = "TLS from VPC"
@@ -33,23 +29,19 @@ resource "aws_security_group" "EKS_SG" {
     to_port          = 0
     protocol         = "-1"
     cidr_blocks      = [local.workstation-external-cidr]
-    
   }
-
 
   egress {
     from_port        = 0
     to_port          = 0
     protocol         = "-1"
     cidr_blocks      = ["0.0.0.0/0"]
-    
   }
 
   tags = {
     Name = "${var.cluster_name}-sg"
   }
 }
-
 
 resource "aws_iam_role" "cluster_role" {
   name = "${var.cluster_name}-eks-cluster-cluster_role"
@@ -76,21 +68,17 @@ resource "aws_iam_role_policy_attachment" "AmazonEKSClusterPolicy" {
 }
 
 resource "aws_eks_cluster" "myeks" {
-    name = var.cluster_name
-    role_arn = aws_iam_role.cluster_role.arn
-    version = "1.24"
-    vpc_config {
-        
-        subnet_ids = data.aws_subnet_ids.subnet_id.ids
-        endpoint_private_access = false
-        endpoint_public_access = true
-        security_group_ids = [aws_security_group.EKS_SG.id]
-    
-    }
+  name     = var.cluster_name
+  role_arn = aws_iam_role.cluster_role.arn
+  version  = "1.24"
 
+  vpc_config {
+    subnet_ids              = data.aws_subnet.subnet.*.id
+    endpoint_private_access = false
+    endpoint_public_access  = true
+    security_group_ids      = [aws_security_group.EKS_SG.id]
+  }
 }
-
-#
 
 resource "aws_iam_role" "eks_node_role" {
   name = "${var.cluster_name}-terraform-eks-eks_node_role"
@@ -121,24 +109,4 @@ resource "aws_iam_role_policy_attachment" "eks_node_role-AmazonEKS_CNI_Policy" {
   role       = aws_iam_role.eks_node_role.name
 }
 
-resource "aws_iam_role_policy_attachment" "eks_node_role-AmazonEC2ContainerRegistryReadOnly" {
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-  role       = aws_iam_role.eks_node_role.name
-}
-
-
-
-resource "aws_eks_node_group" "mynode_node" {
-    cluster_name = aws_eks_cluster.myeks.name
-    node_group_name = "${var.cluster_name}-node"
-    node_role_arn = aws_iam_role.eks_node_role.arn
-    subnet_ids = data.aws_subnet_ids.subnet_id.ids
-
-    scaling_config {
-        desired_size = 1
-        max_size = 1
-        min_size = 1
-    }
-
-    instance_types = [var.node_instance_type]
-}
+resource "aws_iam_role
