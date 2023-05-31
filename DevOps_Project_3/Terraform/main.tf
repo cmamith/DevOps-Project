@@ -10,7 +10,7 @@ data "aws_subnet" "subnet" {
   vpc_id = var.vpc_id
 
   tags = {
-    Name = "pub*"
+    Name = "_"
   }
 }
 
