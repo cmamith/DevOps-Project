@@ -3,10 +3,10 @@ data "http" "workstation-external-ip" {
 }
 
 locals {
-  workstation-external-cidr = "${chomp(data.http.workstation-external-ip.body)}/32"
+  workstation-external-cidr = "${chomp(data.http.workstation-external-ip.response_body)}/32"
 }
 
-data "aws_subnet_ids" "subnet_id" {
+data "aws_subnet" "subnet" {
   vpc_id = var.vpc_id
 
   tags = {
@@ -14,12 +14,9 @@ data "aws_subnet_ids" "subnet_id" {
   }
 }
 
-
 output "ids" {
-    value = data.aws_subnet_ids.subnet_id.ids
+  value = data.aws_subnet.subnet.*.id
 }
-
-
 
 resource "aws_security_group" "EKS_SG" {
   name        = "${var.cluster_name}-sg"
