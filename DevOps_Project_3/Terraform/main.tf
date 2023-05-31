@@ -73,19 +73,17 @@ resource "aws_iam_role_policy_attachment" "AmazonEKSClusterPolicy" {
 }
 
 resource "aws_eks_cluster" "myeks" {
-    name = var.cluster_name
-    role_arn = aws_iam_role.cluster_role.arn
-    version = "1.24"
-    vpc_config {
-        
-        subnet_ids = data.aws_subnet_ids.subnet_id.ids
-        endpoint_private_access = false
-        endpoint_public_access = true
-        security_group_ids = [aws_security_group.EKS_SG.id]
-    
-    }
-
+  name     = var.cluster_name
+  role_arn = aws_iam_role.cluster_role.arn
+  version  = "1.24"
+  vpc_config {
+    subnet_ids               = data.aws_subnet.subnet.*.id
+    endpoint_private_access  = false
+    endpoint_public_access   = true
+    security_group_ids       = [aws_security_group.EKS_SG.id]
+  }
 }
+
 
 #
 
