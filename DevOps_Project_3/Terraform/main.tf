@@ -124,16 +124,17 @@ resource "aws_iam_role_policy_attachment" "eks_node_role-AmazonEC2ContainerRegis
 
 
 resource "aws_eks_node_group" "mynode_node" {
-    cluster_name = aws_eks_cluster.myeks.name
-    node_group_name = "${var.cluster_name}-node"
-    node_role_arn = aws_iam_role.eks_node_role.arn
-    subnet_ids = data.aws_subnet_ids.subnet_id.ids
+  cluster_name    = aws_eks_cluster.myeks.name
+  node_group_name = "${var.cluster_name}-node"
+  node_role_arn   = aws_iam_role.eks_node_role.arn
+  subnet_ids      = data.aws_subnet.subnet.*.id
 
-    scaling_config {
-        desired_size = 1
-        max_size = 1
-        min_size = 1
-    }
+  scaling_config {
+    desired_size = 1
+    max_size     = 1
+    min_size     = 1
+  }
 
-    instance_types = [var.node_instance_type]
-}    
+  instance_types = [var.node_instance_type]
+}
+ 
